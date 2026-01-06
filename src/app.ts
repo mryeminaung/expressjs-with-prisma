@@ -1,10 +1,11 @@
+import CookieParser from "cookie-parser";
 import cors from "cors";
 import { config } from "dotenv";
 import express from "express";
 import { disconnectDB, prisma } from "./config/prisma";
-import todoRouter from "./routes/todoRoutes";
-import studentRouter from "./routes/studentRoutes";
 import proposalRouter from "./routes/proposalRoutes";
+import studentRouter from "./routes/studentRoutes";
+import todoRouter from "./routes/todoRoutes";
 
 config();
 const app = express();
@@ -12,36 +13,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(CookieParser());
 
 app.use("/api/todos", todoRouter);
 app.use("/api/students", studentRouter);
 app.use("/api/proposals", proposalRouter);
 
-app.get("/api/stu-with-proposals/:stuId", async(req, res)=>{
-	
+app.get("/api/stu-with-proposals", async (req, res) => {
 	const data = await prisma.student.findMany({
-		where: {id: Number(req.params.stuId)},
 		select: {
+			id: true,
 			name: true,
 			email: true,
+			_count: ,
 			proposals: {
+				where: { status: "APPROVED" },
 				select: {
+					id: true,
 					title: true,
 					description: true,
-					submittedAt: true,
-					submitter: {
-						select: {
-							name: true
-						}
-					}
-				}
-			}
+					status: true,
+				},
+			},
 		},
-	})
+	});
 
 	res.status(200).json({
-		message: 'success',
-		data
+		message: "success",
+		data,
 	});
 });
 
