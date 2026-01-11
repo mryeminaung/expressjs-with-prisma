@@ -1,8 +1,8 @@
-import { prisma } from "../config/prisma";
+import * as todoService from "../services/todoService.js";
 
 export const getTodos = async (req, res) => {
 	try {
-		const todos = await prisma.todo.findMany();
+		const todos = await todoService.getAllTodos();
 		res.json({ message: "success", data: todos });
 	} catch (error) {
 		res
@@ -13,9 +13,10 @@ export const getTodos = async (req, res) => {
 
 export const getTodo = async (req, res) => {
 	try {
-		const todo = await prisma.todo.findFirst({
-			where: { id: req.params.todoId },
-		});
+		const { todoId } = req.params;
+		const todo = await todoService.getTodo(todoId);
+		if (!todo)
+			res.status(404).json({ message: "Todo not found or already deleted" });
 		res.json({ message: "success", data: todo });
 	} catch (error) {
 		res
@@ -26,10 +27,8 @@ export const getTodo = async (req, res) => {
 
 export const createTodo = async (req, res) => {
 	try {
-		const { title, description } = req.body;
-		const todo = await prisma.todo.create({
-			data: { title, description },
-		});
+		if (!req.body.title) res.json({ message: "Title is required" });
+		const todo = await todoService.createTodo(req.body);
 		res.status(201).json({ message: "success", data: todo });
 	} catch (error) {
 		res
@@ -41,10 +40,10 @@ export const createTodo = async (req, res) => {
 export const updateTodo = async (req, res) => {
 	try {
 		const { todoId } = req.params;
-		const todo = await prisma.todo.update({
-			where: { id: todoId },
-			data: req.body,
-		});
+		if (!todoId) {
+			return res.status(400).json({ message: "Todo ID is required" });
+		}
+		const todo = await todoService.updateTodo(todoId, req.body);
 		res.json({ message: "success", data: todo });
 	} catch (error) {
 		res.status(400).json({ message: "Update failed", error: error.message });
@@ -54,8 +53,12 @@ export const updateTodo = async (req, res) => {
 export const deleteTodo = async (req, res) => {
 	try {
 		const { todoId } = req.params;
-		await prisma.todo.delete({ where: { id: todoId } });
-		res.status(200).json({ message: "Todo deleted successfully" });
+		if (!todoId) {
+			return res.status(400).json({ message: "Todo ID is required" });
+		}
+		await todoService.deleteTodo(todoId);
+		res.sendStatus(204);
+		// res.status(204).json({ message: "Todo deleted successfully" });
 	} catch (error) {
 		res.status(404).json({ message: "Todo not found or already deleted" });
 	}

@@ -25,7 +25,6 @@ app.get("/api/stu-with-proposals", async (req, res) => {
 			id: true,
 			name: true,
 			email: true,
-			_count: ,
 			proposals: {
 				where: { status: "APPROVED" },
 				select: {
